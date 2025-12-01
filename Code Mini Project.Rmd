@@ -1,0 +1,229 @@
+---
+title: "Mini Project"
+author: "Kelompok 9"
+date: "2024-12-13"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Begin
+
+```{r}
+library(readr)
+
+df <- read_csv("C:/Mini Project/DatasetBayes.csv")
+head(df)
+```
+
+```{r}
+# Load necessary libraries
+library(readr)
+library(dplyr)
+
+# Load dataset
+df <- read_csv("C:/Mini Project/DatasetBayes.csv")
+
+# Display the first few rows of the dataset
+head(df)
+
+# Subset relevant variables
+# Target variable: Outcome (binary: diabetes present = 1, not present = 0)
+# Covariates: Glucose, BMI, Age, BloodPressure, DiabetesPedigreeFunction
+dataset <- df %>% select(Outcome, Glucose, BMI, Age, BloodPressure, DiabetesPedigreeFunction)
+
+# Check structure of the data
+str(dataset)
+```
+
+```{r}
+# Load Bayesian regression libraries
+library(rstanarm)
+
+# Fit logistic regression with uninformative priors
+model1 <- stan_glm(
+  Outcome ~ Glucose + BMI + Age + BloodPressure + DiabetesPedigreeFunction,
+  family = binomial(link = "logit"),
+  data = dataset,
+  prior = normal(0, 10), # Uninformative prior
+  seed = 123
+)
+
+# Summary of the model
+summary(model1)
+```
+
+```{r}
+# Fit logistic regression with informative priors
+model2 <- stan_glm(
+  Outcome ~ Glucose + BMI + Age + BloodPressure + DiabetesPedigreeFunction,
+  family = binomial(link = "logit"),
+  data = dataset,
+  prior = normal(c(2, 0.5, 0.1, 0.1, 1), 1), # Informative priors
+  prior_intercept = normal(0, 5),
+  seed = 123
+)
+
+# Summary of the model
+summary(model2)
+```
+
+```{r}
+# Check convergence diagnostics for both models
+print(model1, digits = 2)
+print(model2, digits = 2)
+
+# R-hat close to 1 indicates good convergence
+```
+
+```{r}
+# Fit logistic regression with uninformative priors (Model 1)
+model1 <- stan_glm(
+  Outcome ~ Glucose + BMI + Age + BloodPressure + DiabetesPedigreeFunction,
+  family = binomial(link = "logit"),
+  data = dataset,
+  prior = normal(0, 10), # Uninformative prior
+  seed = 123,
+  diagnostic_file = "diagnostics_model1.csv"
+)
+
+# Fit logistic regression with informative priors (Model 2)
+model2 <- stan_glm(
+  Outcome ~ Glucose + BMI + Age + BloodPressure + DiabetesPedigreeFunction,
+  family = binomial(link = "logit"),
+  data = dataset,
+  prior = normal(c(2, 0.5, 0.1, 0.1, 1), 1), # Informative priors
+  prior_intercept = normal(0, 5),
+  seed = 123,
+  diagnostic_file = "diagnostics_model2.csv"
+)
+```
+
+```{r}
+library(bridgesampling)
+
+# Compute Bayes' factor using bridge_sampler
+bf1 <- bridge_sampler(model1)
+bf2 <- bridge_sampler(model2)
+
+# Compute the Bayes Factor
+bayes_factor <- bayes_factor(bf1, bf2)
+print(bayes_factor)
+```
+
+```{r}
+# Compute WAIC and LOO for both models
+waic1 <- loo::waic(model1)
+waic2 <- loo::waic(model2)
+
+loo1 <- loo::loo(model1)
+loo2 <- loo::loo(model2)
+
+# Print comparison
+print(waic1)
+print(waic2)
+print(loo_compare(loo1, loo2))
+```
+
+```{r}
+library(rstanarm)
+
+# Fit the Bayesian logistic regression model
+best_model <- stan_glm(
+  Outcome ~ Glucose + BMI + Age + BloodPressure + DiabetesPedigreeFunction,
+  family = binomial(link = "logit"),
+  data = dataset,
+  seed = 123
+)
+
+# Extract posterior summaries for the best model (e.g., model1 or model2)
+posterior_summary <- summary(best_model)
+
+# Interpretation of coefficients
+posterior_summary
+```
+
+```{r}
+# Generate posterior predictive samples
+posterior_predictions <- posterior_predict(best_model)
+
+# Convert predictions to binary outcomes
+predicted_binary <- ifelse(rowMeans(posterior_predictions) > 0.5, 1, 0)
+
+# Calculate accuracy
+accuracy <- mean(predicted_binary == dataset$Outcome)
+print(paste("Predictive Accuracy:", accuracy))
+```
+
+## Wrapped
+
+```{r}
+# Fit logistic regression with uninformative priors
+model1 <- stan_glm(
+  Outcome ~ Glucose + BMI + Age + BloodPressure + DiabetesPedigreeFunction,
+  family = binomial(link = "logit"),
+  data = dataset,
+  prior = normal(0, 10), # Uninformative prior
+  seed = 123,
+  diagnostic_file = "diagnostics_model1.csv"
+)
+
+# Fit logistic regression with informative priors
+model2 <- stan_glm(
+  Outcome ~ Glucose + BMI + Age + BloodPressure + DiabetesPedigreeFunction,
+  family = binomial(link = "logit"),
+  data = dataset,
+  prior = normal(c(2, 0.5, 0.1, 0.1, 1), 1), # Informative priors
+  prior_intercept = normal(0, 5),
+  seed = 123,
+  diagnostic_file = "diagnostics_model2.csv"
+)
+```
+
+```{r}
+summary(model1)
+summary(model2)
+```
+
+```{r}
+# Convergence diagnostics
+print(model1, digits = 2)
+print(model2, digits = 2)
+
+# R-hat close to 1 indicates good convergence
+```
+
+```{r}
+# Compute Bayes' factor using bridgesampling
+library(bridgesampling)
+bf1 <- bridge_sampler(model1)
+bf2 <- bridge_sampler(model2)
+
+# Compute and display the Bayes Factor
+bayes_factor <- bayes_factor(bf1, bf2)
+print(bayes_factor)
+```
+
+```{r}
+# Compute WAIC and LOO for both models
+waic1 <- loo::waic(model1)
+waic2 <- loo::waic(model2)
+
+loo1 <- loo::loo(model1)
+loo2 <- loo::loo(model2)
+
+# Print WAIC and LOO results
+print(waic1)
+print(waic2)
+print(loo_compare(loo1, loo2))
+```
+
+```{r}
+# Extract posterior summaries for the best model
+posterior_summary <- summary(best_model)
+print(posterior_summary)
+```
