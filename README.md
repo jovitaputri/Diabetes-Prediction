@@ -5,9 +5,11 @@ This project uses a Bayesian approach to estimate the chance of diabetes in pati
 
 ## Purpose
 The main goal is to compare two Bayesian logistic regression models:
+
 • one model that uses uninformative priors
 
 • another model that uses informative priors
+
 By comparing them, we can see how adding prior knowledge can affect the model’s stability and how easy it is to interpret the results.
 
 ## Core System
